@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+*.log
+
+# Nunca debe existir contenido real de paciente en este repo — ver
+# docs/legal/gates-pendientes.md. data/synthetic/ es la única carpeta
+# de datos permitida en esta fase, y el nombre lo deja explícito.
+data/real/
