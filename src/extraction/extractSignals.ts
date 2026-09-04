@@ -26,7 +26,35 @@ export async function extractSignals(
 
   const candidates = parseCandidates(response);
   const verifiedSignals = verifyAndAttachOffsets(candidates, noteText);
+  logDebugIfEnabled(response, candidates, verifiedSignals);
   return verifiedSignals;
+}
+
+/**
+ * Diagnóstico opt-in (REFTIE_DEBUG=1) — separa dos causas de "no disparó
+ * nada" que el log normal del eval no distingue: el LLM no propuso
+ * ninguna señal, vs. propuso algo que el guardrail de citas descartó
+ * por no ser subcadena literal (paráfrasis o alucinación).
+ */
+function logDebugIfEnabled(
+  response: Anthropic.Message,
+  candidates: readonly ExtractedSignalCandidate[],
+  verifiedSignals: readonly VerifiedSignal[],
+): void {
+  const debugEnabled = process.env.REFTIE_DEBUG === '1';
+  if (!debugEnabled) {
+    return;
+  }
+  const firstBlock = response.content[0];
+  const isTextBlock = firstBlock?.type === 'text';
+  const rawText = isTextBlock ? firstBlock.text : '(sin bloque de texto en la respuesta)';
+  console.warn(`  [debug] respuesta cruda del modelo: ${rawText}`);
+  console.warn(`  [debug] candidatos parseados: ${candidates.length}, verificados: ${verifiedSignals.length}`);
+  for (const candidate of candidates) {
+    const wasVerified = verifiedSignals.some((v) => v.quote === candidate.quote);
+    const verifiedLabel = wasVerified ? 'verificada' : 'DESCARTADA (no es subcadena literal de la nota)';
+    console.warn(`  [debug] candidato: signalType=${candidate.signalType} ruleId=${candidate.ruleIdSuggested} quote="${candidate.quote}" -> ${verifiedLabel}`);
+  }
 }
 
 function parseCandidates(response: Anthropic.Message): ExtractedSignalCandidate[] {
