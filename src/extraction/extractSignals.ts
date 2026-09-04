@@ -47,9 +47,8 @@ function logDebugIfEnabled(
   }
   const blockTypes = response.content.map((block) => block.type);
   console.warn(`  [debug] stop_reason=${response.stop_reason} bloques=[${blockTypes.join(', ')}]`);
-  const firstBlock = response.content[0];
-  const isTextBlock = firstBlock?.type === 'text';
-  const rawText = isTextBlock ? firstBlock.text : '(sin bloque de texto en la respuesta)';
+  const textBlock = response.content.find((block) => block.type === 'text');
+  const rawText = textBlock !== undefined ? textBlock.text : '(sin bloque de texto en la respuesta)';
   console.warn(`  [debug] respuesta cruda del modelo: ${rawText}`);
   console.warn(`  [debug] candidatos parseados: ${candidates.length}, verificados: ${verifiedSignals.length}`);
   for (const candidate of candidates) {
@@ -60,12 +59,15 @@ function logDebugIfEnabled(
 }
 
 function parseCandidates(response: Anthropic.Message): ExtractedSignalCandidate[] {
-  const firstBlock = response.content[0];
-  const isTextBlock = firstBlock?.type === 'text';
-  if (!isTextBlock) {
+  // No asumir que el texto está en content[0] — con razonamiento extendido
+  // habilitado, el modelo puede devolver un bloque "thinking" primero.
+  // Buscar el primer bloque de texto en toda la respuesta, no solo el índice 0.
+  const textBlock = response.content.find((block) => block.type === 'text');
+  const hasTextBlock = textBlock !== undefined;
+  if (!hasTextBlock) {
     return [];
   }
-  const rawText = firstBlock.text.trim();
+  const rawText = textBlock.text.trim();
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawText);
