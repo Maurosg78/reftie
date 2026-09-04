@@ -1,0 +1,27 @@
+#!/bin/sh
+# Bloquea el commit si detecta patrones típicos de PHI en lo que se está
+# por confirmar. Barata de construir, evita el error más caro que existe
+# en este tipo de proyecto. NO es un sustituto de desidentificación real
+# — es una última red, no la primera línea de defensa.
+#
+# Instalar una vez por clon del repo:
+#   git config core.hooksPath scripts/hooks
+
+set -e
+
+staged_diff=$(git diff --cached -U0 -- . ':(exclude)scripts/hooks/pre-commit')
+
+# Ontario Health Card Number: 10 dígitos, a veces con 2 letras de sufijo.
+if echo "$staged_diff" | grep -Eq '\b[0-9]{4}[- ]?[0-9]{3}[- ]?[0-9]{3}\b'; then
+  echo "pre-commit: posible número de tarjeta de salud (formato OHIP-like) en el diff. Commit bloqueado."
+  echo "Si es un falso positivo (ej. un ID sintético), ajustá el dato de prueba o revisá a mano antes de forzar."
+  exit 1
+fi
+
+# Fecha de nacimiento en formato explícito DOB/birthdate seguido de fecha.
+if echo "$staged_diff" | grep -Eiq '(dob|date of birth|fecha de nacimiento)[: ]+[0-9]{1,4}[-/][0-9]{1,2}[-/][0-9]{1,4}'; then
+  echo "pre-commit: posible fecha de nacimiento real en el diff. Commit bloqueado."
+  exit 1
+fi
+
+exit 0
