@@ -1,0 +1,22 @@
+name: Eval extracción (Etapa A)
+
+# Manual, no en cada push (ver docs/adr/0004) — cuesta dinero y no es
+# determinístico. Usa el secret de repo ANTHROPIC_API_KEY, nunca un
+# archivo en el repo. GitHub enmascara el valor automáticamente si
+# apareciera por error en la salida.
+on:
+  workflow_dispatch:
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.19'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run eval:extraction
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
