@@ -45,6 +45,8 @@ function logDebugIfEnabled(
   if (!debugEnabled) {
     return;
   }
+  const blockTypes = response.content.map((block) => block.type);
+  console.warn(`  [debug] stop_reason=${response.stop_reason} bloques=[${blockTypes.join(', ')}]`);
   const firstBlock = response.content[0];
   const isTextBlock = firstBlock?.type === 'text';
   const rawText = isTextBlock ? firstBlock.text : '(sin bloque de texto en la respuesta)';
